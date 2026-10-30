@@ -14,6 +14,7 @@ class LeaveManager:
         'sick': {'max_days': 10, 'label': 'Enfermedad'},
         'personal': {'max_days': 3, 'label': 'Personal'},
         'maternity': {'max_days': 90, 'label': 'Maternidad'},
+        'paternity': {'max_days': 15, 'label': 'Paternidad'},
     }
 
     def __init__(self):
