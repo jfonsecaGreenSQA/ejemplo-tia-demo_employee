@@ -1,0 +1,67 @@
+name: CI - TIA (Solo Tests Afectados)
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-tia:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 2  # Necesario para git diff
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Detect changed files
+      id: changes
+      run: |
+        CHANGED=$(git diff --name-only HEAD~1 HEAD -- 'src/*.py' || echo "")
+        echo "changed_files=$CHANGED" >> $GITHUB_OUTPUT
+        echo "📁 Archivos cambiados: $CHANGED"
+
+    - name: Run TIA Analysis
+      if: steps.changes.outputs.changed_files != ''
+      run: |
+        echo "🎯 Ejecutando Análisis de Impacto (TIA)..."
+        CHANGED_ARGS=""
+        for f in ${{ steps.changes.outputs.changed_files }}; do
+          CHANGED_ARGS="$CHANGED_ARGS $f"
+        done
+        python impact_analysis.py --changed $CHANGED_ARGS
+
+    - name: Run affected tests only
+      if: steps.changes.outputs.changed_files != ''
+      run: |
+        echo "⚡ Ejecutando SOLO tests afectados..."
+        AFFECTED=$(python -c "
+        import sys
+        sys.path.insert(0, '.')
+        from impact_analysis import analyze_impact
+        changed = '${{ steps.changes.outputs.changed_files }}'.split()
+        affected, _ = analyze_impact(changed)
+        print(' '.join(affected.keys()))
+        ")
+        if [ -n "$AFFECTED" ]; then
+          python -m pytest $AFFECTED -v --tb=short
+        else
+          echo "✅ No hay tests afectados"
+        fi
+
+    - name: Run full suite (no src changes)
+      if: steps.changes.outputs.changed_files == ''
+      run: |
+        echo "ℹ Sin cambios en src/, ejecutando suite completa"
+        python -m pytest tests/ -v --tb=short
