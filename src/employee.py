@@ -13,7 +13,7 @@ class EmployeeManager:
         self.employees = {}
         self._next_id = 1001
 
-    def addEmployee(self, first_name, last_name, employee_id=None, job_title=None):
+    def addEmployee(self, first_name, last_name, employee_id=None, job_title=None,departamento="General"):
         """Crear un nuevo empleado con validaciones"""
         if not first_name or not last_name:
             raise ValueError("Nombre y apellido son requeridos")
@@ -32,6 +32,7 @@ class EmployeeManager:
             'first_name': first_name,
             'last_name': last_name,
             'job_title': job_title or 'Sin asignar',
+            'department': departamento,
             'status': 'active'
         }
         return emp_id
